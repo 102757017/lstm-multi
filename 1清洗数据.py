@@ -3,14 +3,22 @@ from datetime import datetime
 # load data
 def parse(x):
 	return datetime.strptime(x, '%Y %m %d %H')
+
+# 从csv文件载入数据
+#parse_dates:这是指定含有时间数据信息的列
+#index_col=0表示将第0列作为索引列
+#date_parser：指定将输入的字符串转换为可变的时间数据。Pandas默认的数据读取格式是‘YYYY-MM-DD 
 dataset = read_csv('PRSA_data_2010.1.1-2014.12.31.csv',  parse_dates = [['year', 'month', 'day', 'hour']], index_col=0, date_parser=parse)
+
+#丢弃第一列
 dataset.drop('No', axis=1, inplace=True)
-# manually specify column names
+# 手动指定行标题
 dataset.columns = ['pollution', 'dew', 'temp', 'press', 'wnd_dir', 'wnd_spd', 'snow', 'rain']
+#指定索引名
 dataset.index.name = 'date'
-# mark all NA values with 0
+# 将所有“NA”替换为0
 dataset['pollution'].fillna(0, inplace=True)
-# drop the first 24 hours
+# 丢弃前24小时的数据
 dataset = dataset[24:]
 # summarize first 5 rows
 print(dataset.head(5))

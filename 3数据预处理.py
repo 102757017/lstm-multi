@@ -5,6 +5,8 @@ from pandas import read_csv
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
+import pickle
+import numpy as np
 
 #将数据集转换为监督学习问题
 #data：输入numpy矩阵,行为日期，列为特征值
@@ -18,6 +20,7 @@ def series_to_supervised(data, n_in=50, n_out=1, dropnan=True):
     else:
         n_vars=data.shape[1]
     #n_vars为特征个数
+    print("特征个数n_vars为:",n_vars)
         
     #将矩阵转换为dataframe
     df = DataFrame(data)
@@ -33,18 +36,17 @@ def series_to_supervised(data, n_in=50, n_out=1, dropnan=True):
         for j in range(n_vars):
                 names.append('var%d(t-%d)' % (j+1, i))
 
+    
+    #删除我们不想预测的列
+    df.drop(df.columns[[1,2,3,4,5,6,7]], axis=1, inplace=True)
+    
     # 预测序列 (t, t+1, ... t+n)
     for i in range(0, n_out):
         #将dataframe整体向上平移i个单元格，由此缺少的值用NaN填补
         cols.append(df.shift(-i))
-
-        #创建预测数据的表头
-        if i==0:
-            for j in range(n_vars):
-                names.append('var%d(t)' % (j+1))
-        else:
-            for j in range(n_vars):
-                names.append('var%d(t+%d)' % (j+1, i))
+        #创建预测数据的表头,range内的数为train_y的列数
+        for j in range(1):
+            names.append('var%d(t+%d)' % (j+1, i))
             
     # cols为多个dataframe组成了列表，concat函数将这些dataframe按axis=1的方向连接起来，组成了一个新的dataframe
     agg = concat(cols, axis=1)
@@ -77,23 +79,63 @@ values = values.astype('float32')
 
 
 
-# 归一化,将数据缩放至给定的最小值与最大值之间，通常是０与１之间，用MinMaxScaler实现
-scaler = MinMaxScaler(feature_range=(0, 1))
-scaled = scaler.fit_transform(values)
-
-
 #将数据集转换为监督学习问题,返回值为dataframe
-reframed = series_to_supervised(scaled, 50, 1)
+reframed = series_to_supervised(values, 7, 1)
 
 
-#删除我们不想预测的列
-reframed.drop(reframed.columns[[9,10,11,12,13,14,15]], axis=1, inplace=True)
+
 print(reframed.shape)
 print(reframed)
 
 #reframed.to_csv("Preprocessing.csv")
 
-#压缩格式存储
-h5 = pd.HDFStore("Preprocessing",'w', complevel=4, complib='blosc')
-h5['data'] = reframed
-h5.close()
+# 将数据分割为训练集和测试集
+values = reframed.values
+n_train_hours = round(0.7 * values.shape[0])
+n_validation_hours = round(0.9 * values.shape[0])
+train = values[:n_train_hours, :]
+validation=values[n_train_hours:n_validation_hours, :]
+print(train.shape)
+test = values[n_validation_hours:, :]
+print(test.shape)
+
+
+#np.random.shuffle(train)
+# 将训练集和测试集分割为输入数据x和输出数据y
+train_X, train_y = train[:, :-1], train[:, -1]
+test_X, test_y = test[:, :-1], test[:, -1]
+validation_X, validation_y = validation[:, :-1], validation[:, -1]
+print("train_X",train_X.shape)
+print("train_y",train_y.shape)
+print("test_X",test_X.shape)
+print("test_y",test_y.shape)
+print("validation_X",validation_X.shape)
+print("validation_y",validation_y.shape)
+
+
+# 归一化,将数据缩放至给定的最小值与最大值之间，通常是０与１之间，用MinMaxScaler实现
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(train_X)
+train_X = scaler.transform(train_X)
+
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(train_y)
+train_y = scaler.transform(train_y)
+
+#将scaler对象保存为文件
+dbfile = open('pickle_scaler', 'wb')
+pickle.dump(scaler, dbfile)
+dbfile.close()
+
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(test_X)
+test_X = scaler.transform(test_X)
+
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(test_y)
+test_y = scaler.transform(test_y)
+
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(validation_X)
+validation_X = scaler.transform(validation_X)
+
+scaler = MinMaxScaler(feature_range=(0, 1)).fit(validation_y)
+validation_y = scaler.transform(validation_y)
+
+#将数据以压缩格式存储
+np.savez('Preprocessing',train_X=train_X,train_y=train_y,validation_X=validation_X,validation_y=validation_y,test_X=test_X,test_y=test_y)
