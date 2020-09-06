@@ -1,5 +1,11 @@
 from pandas import read_csv
 from matplotlib import pyplot
+import os
+import sys
+
+os.chdir(sys.path[0])
+
+
 # load dataset
 dataset = read_csv('pollution.csv', header=0, index_col=0)
 values = dataset.values

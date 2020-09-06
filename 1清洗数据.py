@@ -1,5 +1,10 @@
 from pandas import read_csv
 from datetime import datetime
+import os
+import sys
+
+os.chdir(sys.path[0])
+
 # load data
 def parse(x):
 	return datetime.strptime(x, '%Y %m %d %H')

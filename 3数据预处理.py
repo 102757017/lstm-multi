@@ -7,6 +7,10 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
 import pickle
 import numpy as np
+import os
+import sys
+
+os.chdir(sys.path[0])
 
 #将数据集转换为监督学习问题
 #data：输入numpy矩阵,行为日期，列为特征值
@@ -73,15 +77,12 @@ encoder = LabelEncoder()
 values[:,4] = encoder.fit_transform(values[:,4])
 
 
-
 # 将numpy矩阵元素转换为浮点数
 values = values.astype('float32')
 
 
-
 #将数据集转换为监督学习问题,返回值为dataframe
 reframed = series_to_supervised(values, 7, 1)
-
 
 
 print(reframed.shape)
@@ -105,6 +106,11 @@ print(test.shape)
 train_X, train_y = train[:, :-1], train[:, -1]
 test_X, test_y = test[:, :-1], test[:, -1]
 validation_X, validation_y = validation[:, :-1], validation[:, -1]
+
+train_y=train_y.reshape(-1, 1)
+test_y=test_y.reshape(-1, 1)
+validation_y=validation_y.reshape(-1, 1)
+
 print("train_X",train_X.shape)
 print("train_y",train_y.shape)
 print("test_X",test_X.shape)

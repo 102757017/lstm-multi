@@ -8,7 +8,10 @@ from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import sys
 
+os.chdir(sys.path[0])
 
 f=np.load('Preprocessing.npz')
 train_X=f['train_X']
